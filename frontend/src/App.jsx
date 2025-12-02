@@ -1,0 +1,56 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
+import { AuthProvider } from './context/AuthContext'
+import PrivateRoute from './components/PrivateRoute'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Dashboard from './pages/Dashboard'
+import Islands from './pages/Islands'
+import Beds from './pages/Beds'
+import Patients from './pages/Patients'
+import Nurses from './pages/Nurses'
+import QRCodeView from './pages/QRCodeView'
+import Layout from './components/Layout'
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <Layout />
+              </PrivateRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
+            <Route path="islands" element={<Islands />} />
+            <Route path="beds" element={<Beds />} />
+            <Route path="patients" element={<Patients />} />
+            <Route path="nurses" element={<Nurses />} />
+            <Route path="qr/:bedId" element={<QRCodeView />} />
+          </Route>
+        </Routes>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
+      </Router>
+    </AuthProvider>
+  )
+}
+
+export default App
+
