@@ -26,6 +26,8 @@ const PublicQRPage = () => {
   const [loading, setLoading] = useState(true)
   const [apiUrl, setApiUrl] = useState('')
   const [error, setError] = useState(null)
+  const [calling, setCalling] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
 
   useEffect(() => {
     fetchData()
@@ -49,6 +51,36 @@ const PublicQRPage = () => {
       toast.error(err.message || 'No se pudo cargar la información del QR')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCallNurse = async () => {
+    if (!qrData || !qrData.bedId) return;
+    if (cooldown > 0) {
+      toast.info(`Espera ${cooldown}s antes de llamar de nuevo`)
+      return
+    }
+
+    try {
+      setCalling(true)
+      const res = await axios.post(`${(getPublicApi()).defaults.baseURL}/calls`, { bedId: qrData.bedId })
+      toast.success('Llamado enviado al enfermero a cargo')
+
+      // start client cooldown (30s)
+      let remaining = 30
+      setCooldown(remaining)
+      const interval = setInterval(() => {
+        remaining -= 1
+        setCooldown(remaining)
+        if (remaining <= 0) {
+          clearInterval(interval)
+        }
+      }, 1000)
+    } catch (err) {
+      console.error('Error al enviar llamado:', err)
+      toast.error(err.response?.data || 'Error al enviar el llamado')
+    } finally {
+      setCalling(false)
     }
   }
 
@@ -155,6 +187,16 @@ const PublicQRPage = () => {
           {apiUrl && (
             <p className="mt-2">API URL: <span className="break-all text-xs">{apiUrl}</span></p>
           )}
+        </div>
+        {/* Botón de llamada de emergencia (visible para paciente público) */}
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={handleCallNurse}
+            disabled={calling || cooldown > 0}
+            className={`w-full max-w-md text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-colors ${calling || cooldown > 0 ? 'bg-red-300 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
+          >
+            {cooldown > 0 ? `Llamando... espera ${cooldown}s` : 'LLAMAR'}
+          </button>
         </div>
       </div>
     </div>

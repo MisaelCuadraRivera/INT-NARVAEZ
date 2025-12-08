@@ -91,6 +91,18 @@
             <artifactId>core</artifactId>
             <version>3.5.2</version>
         </dependency>
+        <!-- Web Push (VAPID) -->
+        <dependency>
+            <groupId>nl.martijndwars</groupId>
+            <artifactId>web-push</artifactId>
+            <version>5.1.0</version>
+        </dependency>
+        <!-- BouncyCastle for crypto used by web-push -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>1.70</version>
+        </dependency>
         <dependency>
             <groupId>com.google.zxing</groupId>
             <artifactId>javase</artifactId>

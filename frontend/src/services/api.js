@@ -14,7 +14,7 @@ const getApiBaseUrl = () => {
   return `${protocol}//${hostname}:8080/api`
 }
 
-const API_BASE_URL = getApiBaseUrl()
+export const API_BASE_URL = getApiBaseUrl()
 
 export const authAPI = axios.create({
   baseURL: API_BASE_URL,
