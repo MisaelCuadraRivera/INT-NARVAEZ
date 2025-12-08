@@ -4,7 +4,7 @@ import api from '../services/api'
 import { toast } from 'react-toastify'
 
 const Patients = () => {
-  const { isAdmin, isNurse } = useAuth()
+  const { isAdmin, isNurse, user } = useAuth()
   const [patients, setPatients] = useState([])
   const [beds, setBeds] = useState([])
   const [loading, setLoading] = useState(true)
@@ -25,7 +25,7 @@ const Patients = () => {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [user?.id, user?.role])
 
   const fetchData = async () => {
     try {
@@ -38,16 +38,21 @@ const Patients = () => {
         return
       }
       
-      // Cargar pacientes primero
+      // Cargar pacientes
       let patientsRes
       try {
-        patientsRes = await api.get('/patients')
+        if (isAdmin()) {
+          // Admin ve todos los pacientes
+          patientsRes = await api.get('/patients')
+        } else {
+          // Enfermero solo ve sus pacientes asignados
+          patientsRes = await api.get(`/nurses/${user?.id}/patients`)
+        }
         setPatients(patientsRes.data || [])
       } catch (error) {
         console.error('Error al cargar pacientes:', error)
         if (error.response?.status === 403) {
           toast.error('No tienes permisos para ver pacientes. Verifica tu sesión.')
-          // Intentar recargar la página después de un momento
           setTimeout(() => {
             window.location.reload()
           }, 2000)
@@ -59,22 +64,30 @@ const Patients = () => {
         setPatients([])
       }
       
-      // Cargar islas después
-      let islandsRes
+      // Cargar camas disponibles
+      let allBeds = []
       try {
-        islandsRes = await api.get('/islands')
-        
-        const allBeds = []
-        if (islandsRes.data && Array.isArray(islandsRes.data)) {
-          islandsRes.data.forEach(island => {
-            if (island.beds && Array.isArray(island.beds)) {
-              island.beds.forEach(bed => {
-                if (!bed.occupied) {
-                  allBeds.push({ ...bed, islandName: island.name })
-                }
-              })
-            }
-          })
+        if (isAdmin()) {
+          // Admin carga todas las islas para ver todas las camas
+          const islandsRes = await api.get('/islands')
+          if (islandsRes.data && Array.isArray(islandsRes.data)) {
+            islandsRes.data.forEach(island => {
+              if (island.beds && Array.isArray(island.beds)) {
+                island.beds.forEach(bed => {
+                  if (!bed.occupied) {
+                    allBeds.push({ ...bed, islandName: island.name })
+                  }
+                })
+              }
+            })
+          }
+        } else {
+          // Enfermero solo ve sus camas asignadas (incluso las ocupadas)
+          const nurseBeds = await api.get(`/nurses/${user?.id}/beds`)
+          allBeds = (nurseBeds.data || []).map(bed => ({
+            ...bed,
+            islandName: bed.islandName
+          }))
         }
         setBeds(allBeds)
       } catch (error) {

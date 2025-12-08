@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import api from '../services/api'
 import { toast } from 'react-toastify'
 
 const Login = () => {
@@ -18,7 +19,44 @@ const Login = () => {
     
     if (result.success) {
       toast.success('Inicio de sesión exitoso')
-      navigate('/')
+      try {
+        // Obtener usuario almacenado (login guarda en localStorage)
+        const stored = localStorage.getItem('user')
+        const currentUser = stored ? JSON.parse(stored) : null
+
+        // Si es paciente, buscar su registro y redirigir a la página pública del QR
+        if (currentUser?.role === 'PATIENT') {
+          try {
+            const patientsRes = await api.get('/patients')
+            const patients = patientsRes.data || []
+            const myPatient = patients.find(p => p.userId === currentUser.id)
+
+            if (myPatient && myPatient.bedId) {
+              // Asegurar que exista token (genera si no existe)
+              const tokenRes = await api.get(`/qr/token/bed/${myPatient.bedId}`)
+              const token = tokenRes.data
+              if (token) {
+                navigate(`/qr/${token}`)
+              } else {
+                toast.error('No se pudo obtener el token QR del paciente')
+                navigate('/')
+              }
+            } else {
+              toast.info('No se encontró cama asignada al paciente')
+              navigate('/')
+            }
+          } catch (err) {
+            console.error('Error buscando paciente tras login:', err)
+            toast.error('Error al obtener información del paciente')
+            navigate('/')
+          }
+        } else {
+          navigate('/')
+        }
+      } catch (err) {
+        console.error('Error en redirect post-login:', err)
+        navigate('/')
+      }
     } else {
       toast.error(result.message || 'Error al iniciar sesión')
     }

@@ -24,6 +24,14 @@ public class Nurse {
     )
     private List<Island> assignedIslands = new ArrayList<>();
     
+    @ManyToMany
+    @JoinTable(
+        name = "nurse_beds",
+        joinColumns = @JoinColumn(name = "nurse_id"),
+        inverseJoinColumns = @JoinColumn(name = "bed_id")
+    )
+    private List<Bed> assignedBeds = new ArrayList<>();
+    
     @Column
     private String licenseNumber;
     
@@ -53,6 +61,14 @@ public class Nurse {
 
     public void setAssignedIslands(List<Island> assignedIslands) {
         this.assignedIslands = assignedIslands;
+    }
+
+    public List<Bed> getAssignedBeds() {
+        return assignedBeds;
+    }
+
+    public void setAssignedBeds(List<Bed> assignedBeds) {
+        this.assignedBeds = assignedBeds;
     }
 
     public String getLicenseNumber() {

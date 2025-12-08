@@ -5,7 +5,7 @@ import api from '../services/api'
 import { toast } from 'react-toastify'
 
 const Beds = () => {
-  const { isAdmin } = useAuth()
+  const { isAdmin, user } = useAuth()
   const [beds, setBeds] = useState([])
   const [islands, setIslands] = useState([])
   const [loading, setLoading] = useState(true)
@@ -15,21 +15,33 @@ const Beds = () => {
 
   useEffect(() => {
     fetchData()
-  }, [])
+  }, [user?.id, user?.role])
 
   const fetchData = async () => {
     try {
-      const islandsRes = await api.get('/islands')
-      setIslands(islandsRes.data)
+      let allBeds = []
       
-      const allBeds = []
-      islandsRes.data.forEach(island => {
-        if (island.beds) {
-          island.beds.forEach(bed => {
-            allBeds.push({ ...bed, islandName: island.name })
-          })
-        }
-      })
+      if (isAdmin()) {
+        // Admin ve todas las camas
+        const islandsRes = await api.get('/islands')
+        setIslands(islandsRes.data)
+        islandsRes.data.forEach(island => {
+          if (island.beds) {
+            island.beds.forEach(bed => {
+              allBeds.push({ ...bed, islandName: island.name })
+            })
+          }
+        })
+      } else {
+        // Enfermero solo ve sus camas asignadas
+        const nurseRes = await api.get(`/nurses/${user?.id}`)
+        const nurseBeds = nurseRes.data.assignedBeds || []
+        allBeds = nurseBeds.map(bed => ({
+          ...bed,
+          islandName: bed.islandName
+        }))
+      }
+      
       setBeds(allBeds)
     } catch (error) {
       toast.error('Error al cargar datos')
@@ -49,6 +61,45 @@ const Beds = () => {
       fetchData()
     } catch (error) {
       toast.error(error.response?.data || 'Error al agregar cama')
+    }
+  }
+
+  const handleRegenerateQR = async (bed) => {
+    try {
+      const res = await api.get(`/qr/token/bed/${bed.id}`)
+      const token = res.data
+      // update local state so UI reflects new token
+      setBeds(prev => prev.map(b => (b.id === bed.id ? { ...b, qrCode: token } : b)))
+      toast.success('Token QR regenerado')
+
+      // open the public URL in a new tab so user can quickly verify
+      let publicBase = import.meta.env.VITE_PUBLIC_URL || window.location.origin
+      if (!/^https?:\/\//i.test(publicBase)) {
+        publicBase = `http://${publicBase}`
+      }
+      const url = `${publicBase.replace(/\/$/, '')}/qr/${token}`
+      window.open(url, '_blank')
+
+      // Also request the PNG image from backend and trigger a download
+      try {
+        const imgRes = await api.get(`/qr/bed/${bed.id}`)
+        const imgData = imgRes.data // expected data:image/png;base64,...
+        if (imgData && imgData.startsWith('data:image')) {
+          const fileName = `qr_bed_${bed.bedNumber ? bed.bedNumber.replace(/[^a-zA-Z0-9-_\.]/g, '_') : bed.id}.png`
+          const link = document.createElement('a')
+          link.href = imgData
+          link.download = fileName
+          document.body.appendChild(link)
+          link.click()
+          link.remove()
+          toast.success('Imagen QR descargada')
+        }
+      } catch (err) {
+        console.warn('No se pudo descargar imagen QR:', err)
+      }
+    } catch (err) {
+      console.error('Error regenerando token QR', err)
+      toast.error('Error al regenerar token QR')
     }
   }
 
@@ -108,12 +159,20 @@ const Beds = () => {
               </div>
             )}
 
-            <Link
-              to={`/qr/${bed.id}`}
-              className="block w-full bg-primary-600 text-white text-center py-2 rounded-lg hover:bg-primary-700 transition-colors mt-4"
-            >
-              Ver QR
-            </Link>
+            <div className="flex gap-3 mt-4">
+              <Link
+                to={`/beds/qr/${bed.id}`}
+                className="flex-1 bg-primary-600 text-white text-center py-2 rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Ver QR
+              </Link>
+              <button
+                onClick={() => handleRegenerateQR(bed)}
+                className="flex-none bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Regenerar QR
+              </button>
+            </div>
           </div>
         ))}
       </div>

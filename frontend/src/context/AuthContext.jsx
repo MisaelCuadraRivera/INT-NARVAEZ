@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.post('/auth/login', { username, password })
       const { token, username: userUsername, role, userId } = response.data
       
-      const userData = { username: userUsername, role, userId }
+      const userData = { id: userId, username: userUsername, role, userId }
       localStorage.setItem('token', token)
       localStorage.setItem('user', JSON.stringify(userData))
       authAPI.defaults.headers.common['Authorization'] = `Bearer ${token}`

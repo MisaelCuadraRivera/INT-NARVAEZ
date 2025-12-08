@@ -9,7 +9,7 @@ const Layout = () => {
 
   const menuItems = [
     { path: '/', label: 'Dashboard', icon: '📊', roles: ['ADMIN', 'NURSE', 'PATIENT'] },
-    { path: '/islands', label: 'Islas', icon: '🏥', roles: ['ADMIN', 'NURSE'] },
+    { path: '/islands', label: 'Islas', icon: '🏥', roles: ['ADMIN'] },
     { path: '/beds', label: 'Camas', icon: '🛏️', roles: ['ADMIN', 'NURSE'] },
     { path: '/patients', label: 'Pacientes', icon: '👤', roles: ['ADMIN', 'NURSE'] },
     { path: '/nurses', label: 'Enfermeros', icon: '👨‍⚕️', roles: ['ADMIN'] },

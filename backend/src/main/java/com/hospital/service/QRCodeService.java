@@ -72,6 +72,8 @@ public class QRCodeService {
         }
         
         QRCodeData qrData = new QRCodeData();
+        // include the bed's qrCode token so frontend can build a public URL
+        qrData.setQrCode(bed.getQrCode());
         qrData.setBedId(bed.getId());
         qrData.setBedNumber(bed.getBedNumber());
         
@@ -110,10 +112,12 @@ public class QRCodeService {
             .orElseThrow(() -> new RuntimeException("Código QR no encontrado"));
         
         try {
-            if (bed.getQrCodeData() != null) {
-                return objectMapper.readValue(bed.getQrCodeData(), QRCodeData.class);
-            }
-            return buildQRCodeData(bed);
+            // Always build fresh QR data from current DB state so changes to patient or nurse
+            // are immediately reflected when the QR is viewed.
+            QRCodeData data = buildQRCodeData(bed);
+            // ensure qrCode token is present in returned DTO
+            data.setQrCode(bed.getQrCode());
+            return data;
         } catch (Exception e) {
             throw new RuntimeException("Error al leer datos del QR", e);
         }

@@ -1,6 +1,7 @@
 package com.hospital.dto;
 
 public class QRCodeData {
+    private String qrCode;
     private Long bedId;
     private String bedNumber;
     private String islandName;
@@ -46,6 +47,14 @@ public class QRCodeData {
 
     public void setNurseInfo(NurseInfo nurseInfo) {
         this.nurseInfo = nurseInfo;
+    }
+
+    public String getQrCode() {
+        return qrCode;
+    }
+
+    public void setQrCode(String qrCode) {
+        this.qrCode = qrCode;
     }
 
     public static class PatientInfo {

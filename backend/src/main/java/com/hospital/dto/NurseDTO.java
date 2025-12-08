@@ -6,11 +6,13 @@ public class NurseDTO {
     private Long id;
     private Long userId;
     private String username;
+    private String password;
     private String fullName;
     private String email;
     private String licenseNumber;
     private String specialization;
     private List<IslandDTO> assignedIslands;
+    private java.util.List<BedDTO> assignedBeds;
 
     // Getters and Setters
     public Long getId() {
@@ -35,6 +37,14 @@ public class NurseDTO {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getFullName() {
@@ -75,6 +85,14 @@ public class NurseDTO {
 
     public void setAssignedIslands(List<IslandDTO> assignedIslands) {
         this.assignedIslands = assignedIslands;
+    }
+
+    public java.util.List<BedDTO> getAssignedBeds() {
+        return assignedBeds;
+    }
+
+    public void setAssignedBeds(java.util.List<BedDTO> assignedBeds) {
+        this.assignedBeds = assignedBeds;
     }
 }
 

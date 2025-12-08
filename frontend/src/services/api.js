@@ -1,6 +1,20 @@
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+// Detecta la URL base de la API de forma inteligente:
+// 1. Si VITE_API_URL está configurada, úsala
+// 2. Si no, usa el mismo host que el frontend (reemplaza puerto 3000/5173 con 8080)
+// 3. Si todo falla, usa localhost:8080/api como último recurso
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL
+  }
+  // Automático: reemplaza el puerto del frontend con 8080 (puerto del backend)
+  const protocol = window.location.protocol
+  const hostname = window.location.hostname
+  return `${protocol}//${hostname}:8080/api`
+}
+
+const API_BASE_URL = getApiBaseUrl()
 
 export const authAPI = axios.create({
   baseURL: API_BASE_URL,
