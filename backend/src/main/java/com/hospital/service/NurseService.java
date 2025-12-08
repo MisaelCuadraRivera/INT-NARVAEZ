@@ -1,15 +1,25 @@
 package com.hospital.service;
 
-import com.hospital.dto.IslandDTO;
-import com.hospital.dto.NurseDTO;
-import com.hospital.model.*;
-import com.hospital.repository.*;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.hospital.dto.IslandDTO;
+import com.hospital.dto.NurseDTO;
+import com.hospital.model.Bed;
+import com.hospital.model.Island;
+import com.hospital.model.Nurse;
+import com.hospital.model.Patient;
+import com.hospital.model.Role;
+import com.hospital.model.User;
+import com.hospital.repository.BedRepository;
+import com.hospital.repository.IslandRepository;
+import com.hospital.repository.NurseRepository;
+import com.hospital.repository.PatientRepository;
+import com.hospital.repository.UserRepository;
 
 @Service
 public class NurseService {
