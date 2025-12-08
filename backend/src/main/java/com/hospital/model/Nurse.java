@@ -1,18 +1,12 @@
 package com.hospital.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "nurses")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Nurse {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,6 +29,47 @@ public class Nurse {
     
     @Column
     private String specialization;
+
+    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public List<Island> getAssignedIslands() {
+        return assignedIslands;
+    }
+
+    public void setAssignedIslands(List<Island> assignedIslands) {
+        this.assignedIslands = assignedIslands;
+    }
+
+    public String getLicenseNumber() {
+        return licenseNumber;
+    }
+
+    public void setLicenseNumber(String licenseNumber) {
+        this.licenseNumber = licenseNumber;
+    }
+
+    public String getSpecialization() {
+        return specialization;
+    }
+
+    public void setSpecialization(String specialization) {
+        this.specialization = specialization;
+    }
 }
 
 

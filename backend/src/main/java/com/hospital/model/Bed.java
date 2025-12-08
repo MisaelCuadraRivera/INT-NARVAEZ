@@ -1,15 +1,9 @@
 package com.hospital.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "beds")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Bed {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,6 +24,55 @@ public class Bed {
     
     @Column(columnDefinition = "TEXT")
     private String qrCodeData;
+
+    // Getters and Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getBedNumber() {
+        return bedNumber;
+    }
+
+    public void setBedNumber(String bedNumber) {
+        this.bedNumber = bedNumber;
+    }
+
+    public Island getIsland() {
+        return island;
+    }
+
+    public void setIsland(Island island) {
+        this.island = island;
+    }
+
+    public Patient getPatient() {
+        return patient;
+    }
+
+    public void setPatient(Patient patient) {
+        this.patient = patient;
+    }
+
+    public String getQrCode() {
+        return qrCode;
+    }
+
+    public void setQrCode(String qrCode) {
+        this.qrCode = qrCode;
+    }
+
+    public String getQrCodeData() {
+        return qrCodeData;
+    }
+
+    public void setQrCodeData(String qrCodeData) {
+        this.qrCodeData = qrCodeData;
+    }
 }
 
 
