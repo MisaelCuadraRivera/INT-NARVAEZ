@@ -1,19 +1,31 @@
 package com.hospital.config;
 
+import com.hospital.model.Nurse;
+import com.hospital.model.Patient;
 import com.hospital.model.Role;
 import com.hospital.model.User;
+import com.hospital.repository.NurseRepository;
+import com.hospital.repository.PatientRepository;
 import com.hospital.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+
 @Component
 public class DataInitializer implements CommandLineRunner {
-    
+
     @Autowired
     private UserRepository userRepository;
-    
+
+    @Autowired
+    private NurseRepository nurseRepository;
+
+    @Autowired
+    private PatientRepository patientRepository;
+
     @Autowired
     private PasswordEncoder passwordEncoder;
     
@@ -33,25 +45,42 @@ public class DataInitializer implements CommandLineRunner {
         
         // Crear usuario Enfermero si no existe
         if (!userRepository.existsByUsername("enfermero")) {
-            User nurse = new User();
-            nurse.setUsername("enfermero");
-            nurse.setPassword(passwordEncoder.encode("enfermero123"));
-            nurse.setEmail("enfermero@hospital.com");
-            nurse.setFullName("Enfermero Ejemplo");
-            nurse.setRole(Role.NURSE);
-            userRepository.save(nurse);
+            User nurseUser = new User();
+            nurseUser.setUsername("enfermero");
+            nurseUser.setPassword(passwordEncoder.encode("enfermero123"));
+            nurseUser.setEmail("enfermero@hospital.com");
+            nurseUser.setFullName("Enfermero Ejemplo");
+            nurseUser.setRole(Role.NURSE);
+            nurseUser = userRepository.save(nurseUser);
+
+            // Crear registro de enfermero
+            Nurse nurse = new Nurse();
+            nurse.setUser(nurseUser);
+            nurse.setLicenseNumber("ENF-001");
+            nurse.setSpecialization("Cuidados Generales");
+            nurseRepository.save(nurse);
+
             System.out.println("Usuario enfermero creado - Usuario: enfermero, Contraseña: enfermero123");
         }
         
         // Crear usuario Paciente si no existe
         if (!userRepository.existsByUsername("paciente")) {
-            User patient = new User();
-            patient.setUsername("paciente");
-            patient.setPassword(passwordEncoder.encode("paciente123"));
-            patient.setEmail("paciente@hospital.com");
-            patient.setFullName("Paciente Ejemplo");
-            patient.setRole(Role.PATIENT);
-            userRepository.save(patient);
+            User patientUser = new User();
+            patientUser.setUsername("paciente");
+            patientUser.setPassword(passwordEncoder.encode("paciente123"));
+            patientUser.setEmail("paciente@hospital.com");
+            patientUser.setFullName("Paciente Ejemplo");
+            patientUser.setRole(Role.PATIENT);
+            patientUser = userRepository.save(patientUser);
+
+            // Crear registro de paciente
+            Patient patient = new Patient();
+            patient.setUser(patientUser);
+            patient.setMedicalRecordNumber("PAC-001");
+            patient.setDiagnosis("Consulta general");
+            patient.setAdmissionDate(LocalDateTime.now());
+            patientRepository.save(patient);
+
             System.out.println("Usuario paciente creado - Usuario: paciente, Contraseña: paciente123");
         }
     }

@@ -26,18 +26,32 @@ const QRCodeView = () => {
         }
       }
       
-      if (bed && bed.qrCode) {
-        const dataResponse = await api.get(`/qr/data/${bed.qrCode}`)
-        setQrData(dataResponse.data)
-      } else if (bed) {
-        // Si la cama no tiene QR, crear uno básico
-        setQrData({
-          bedId: bed.id,
-          bedNumber: bed.bedNumber,
-          islandName: bed.islandName,
-          patientInfo: null,
-          nurseInfo: null
-        })
+      if (bed) {
+        let token = bed.qrCode
+        // If no token exists yet, request the backend to generate one
+        if (!token) {
+          try {
+            const tokenRes = await api.get(`/qr/token/bed/${bed.id}`)
+            token = tokenRes.data
+          } catch (err) {
+            // If token generation fails, fall back to showing minimal info
+            console.warn('No se pudo generar token QR:', err)
+          }
+        }
+
+        if (token) {
+          const dataResponse = await api.get(`/qr/data/${token}`)
+          setQrData(dataResponse.data)
+        } else {
+          // Si no fue posible generar token, mostrar info básica
+          setQrData({
+            bedId: bed.id,
+            bedNumber: bed.bedNumber,
+            islandName: bed.islandName,
+            patientInfo: null,
+            nurseInfo: null
+          })
+        }
       }
     } catch (error) {
       toast.error('Error al cargar datos del QR')
@@ -65,7 +79,15 @@ const QRCodeView = () => {
     )
   }
 
-  const qrCodeString = JSON.stringify(qrData)
+  // Build a public URL that the QR will point to (uses the token if available)
+  const publicQrToken = qrData.qrCode || qrData.bedId
+  // Prefer an explicit public URL provided via env var for mobile accessibility
+  let publicBase = import.meta.env.VITE_PUBLIC_URL || window.location.origin
+  // If env var provided without protocol, add http:// to make it usable from mobile devices
+  if (!/^https?:\/\//i.test(publicBase)) {
+    publicBase = `http://${publicBase}`
+  }
+  const qrCodeString = `${publicBase.replace(/\/$/, '')}/qr/${publicQrToken}`
 
   return (
     <div className="max-w-2xl mx-auto">

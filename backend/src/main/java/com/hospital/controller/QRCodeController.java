@@ -30,6 +30,19 @@ public class QRCodeController {
             return ResponseEntity.badRequest().body("Error al generar QR: " + e.getMessage());
         }
     }
+
+    // Genera (o devuelve) un token QR para la cama y lo persiste en la BDD.
+    @GetMapping("/token/bed/{bedId}")
+    public ResponseEntity<String> generateOrGetToken(@PathVariable Long bedId) {
+        try {
+            Bed bed = bedRepository.findById(bedId)
+                .orElseThrow(() -> new RuntimeException("Cama no encontrada"));
+            String token = qrCodeService.generateQRCodeString(bed);
+            return ResponseEntity.ok(token);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error al generar token QR: " + e.getMessage());
+        }
+    }
     
     @GetMapping("/data/{qrCode}")
     public ResponseEntity<QRCodeData> getQRCodeData(@PathVariable String qrCode) {

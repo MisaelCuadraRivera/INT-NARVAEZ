@@ -11,6 +11,7 @@ import Beds from './pages/Beds'
 import Patients from './pages/Patients'
 import Nurses from './pages/Nurses'
 import QRCodeView from './pages/QRCodeView'
+import PublicQRPage from './pages/PublicQRPage'
 import Layout from './components/Layout'
 
 function App() {
@@ -20,6 +21,8 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          {/* Public QR page: accessible without authentication */}
+          <Route path="/qr/:qrCode" element={<PublicQRPage />} />
           <Route
             path="/"
             element={
@@ -33,7 +36,7 @@ function App() {
             <Route path="beds" element={<Beds />} />
             <Route path="patients" element={<Patients />} />
             <Route path="nurses" element={<Nurses />} />
-            <Route path="qr/:bedId" element={<QRCodeView />} />
+            <Route path="beds/qr/:bedId" element={<QRCodeView />} />
           </Route>
         </Routes>
         <ToastContainer

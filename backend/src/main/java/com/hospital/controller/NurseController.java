@@ -1,13 +1,23 @@
 package com.hospital.controller;
 
-import com.hospital.dto.NurseDTO;
-import com.hospital.service.NurseService;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.hospital.dto.BedDTO;
+import com.hospital.dto.NurseDTO;
+import com.hospital.dto.PatientDTO;
+import com.hospital.service.NurseService;
 
 @RestController
 @RequestMapping("/api/nurses")
@@ -41,10 +51,22 @@ public class NurseController {
         return ResponseEntity.ok(nurseService.updateNurse(id, nurseDTO));
     }
     
-    @PostMapping("/{id}/assign-islands")
+    @PostMapping("/{id}/assign")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public ResponseEntity<NurseDTO> assignIslands(@PathVariable Long id, @RequestBody List<Long> islandIds) {
-        return ResponseEntity.ok(nurseService.assignIslandsToNurse(id, islandIds));
+    public ResponseEntity<NurseDTO> assignIslandsAndBeds(@PathVariable Long id, @RequestBody com.hospital.dto.AssignRequest request) {
+        return ResponseEntity.ok(nurseService.assignIslandsAndBedsToNurse(id, request.getIslandIds(), request.getBedIds()));
+    }
+
+    @GetMapping("/{id}/beds")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_NURSE')")
+    public ResponseEntity<List<BedDTO>> getBedsAssignedToNurse(@PathVariable Long id) {
+        return ResponseEntity.ok(nurseService.getBedsAssignedToNurse(id));
+    }
+
+    @GetMapping("/{id}/patients")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_NURSE')")
+    public ResponseEntity<List<PatientDTO>> getPatientsAssignedToNurse(@PathVariable Long id) {
+        return ResponseEntity.ok(nurseService.getPatientsAssignedToNurse(id));
     }
 }
 
