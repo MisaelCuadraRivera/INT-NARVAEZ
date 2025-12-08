@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'pwa-512x512.png'],
       manifest: {
         name: 'Hospital Management System',
         short_name: 'Hospital',
@@ -33,6 +33,10 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+      },
+      devOptions: {
+        enabled: true, // permite probar SW en `vite dev` (útil para pruebas)
+        type: 'module'
       }
     })
   ],
