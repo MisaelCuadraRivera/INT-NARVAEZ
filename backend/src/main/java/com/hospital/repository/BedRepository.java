@@ -15,3 +15,4 @@ public interface BedRepository extends JpaRepository<Bed, Long> {
     Optional<Bed> findByQrCode(String qrCode);
 }
 
+

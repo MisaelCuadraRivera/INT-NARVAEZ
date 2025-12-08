@@ -12,11 +12,16 @@ const Patients = () => {
   const [editingPatient, setEditingPatient] = useState(null)
   const [formData, setFormData] = useState({
     userId: '',
+    username: '',
+    fullName: '',
+    email: '',
+    password: '',
     bedId: '',
     diagnosis: '',
     treatment: '',
     medicalRecordNumber: ''
   })
+  const [createNewUser, setCreateNewUser] = useState(true)
 
   useEffect(() => {
     fetchData()
@@ -93,31 +98,102 @@ const Patients = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    // Validar datos según el modo de creación
+    if (!editingPatient) {
+      if (createNewUser) {
+        // Validar datos para crear nuevo usuario
+        if (!formData.username || formData.username.trim() === '') {
+          toast.error('El nombre de usuario es requerido')
+          return
+        }
+        if (!formData.fullName || formData.fullName.trim() === '') {
+          toast.error('El nombre completo es requerido')
+          return
+        }
+        if (!formData.email || formData.email.trim() === '') {
+          toast.error('El email es requerido')
+          return
+        }
+      } else {
+        // Validar que el userId esté presente si se usa usuario existente
+        if (!formData.userId || formData.userId.trim() === '') {
+          toast.error('El ID de usuario es requerido')
+          return
+        }
+      }
+    }
+    
+    // Preparar datos para enviar
+    const submitData = {
+      ...formData,
+      userId: createNewUser ? null : (formData.userId ? Number(formData.userId) : null),
+      bedId: formData.bedId ? Number(formData.bedId) : null,
+      password: createNewUser ? (formData.password || 'paciente123') : undefined
+    }
+    
+    // Limpiar campos no necesarios según el modo
+    if (!createNewUser) {
+      delete submitData.username
+      delete submitData.fullName
+      delete submitData.email
+      delete submitData.password
+    } else {
+      delete submitData.userId
+    }
+    
     try {
       if (editingPatient) {
-        await api.put(`/patients/${editingPatient.id}`, formData)
+        await api.put(`/patients/${editingPatient.id}`, submitData)
         toast.success('Paciente actualizado exitosamente')
       } else {
-        await api.post('/patients', formData)
+        await api.post('/patients', submitData)
         toast.success('Paciente creado exitosamente')
       }
       setShowModal(false)
       setFormData({
         userId: '',
+        username: '',
+        fullName: '',
+        email: '',
+        password: '',
         bedId: '',
         diagnosis: '',
         treatment: '',
         medicalRecordNumber: ''
       })
+      setCreateNewUser(true)
       setEditingPatient(null)
       // Recargar datos inmediatamente
       await fetchData()
     } catch (error) {
       console.error('Error al guardar paciente:', error)
-      const errorMessage = error.response?.data?.message || error.response?.data || error.message || 'Error al guardar paciente'
+      console.error('Error completo:', error.response)
+      
+      let errorMessage = 'Error al guardar paciente'
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message
+        } else if (error.response.data.error) {
+          errorMessage = error.response.data.error
+        }
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      // Mensajes más específicos para errores comunes
+      if (errorMessage.includes('Usuario no encontrado') || errorMessage.includes('Usuario no encontrado con ID')) {
+        errorMessage = `El usuario con ID ${formData.userId} no existe. Por favor, verifica el ID o crea el usuario primero.`
+      } else if (errorMessage.includes('Cama no encontrada')) {
+        errorMessage = 'La cama seleccionada no existe. Por favor, selecciona otra cama.'
+      } else if (errorMessage.includes('ya está ocupada')) {
+        errorMessage = 'La cama seleccionada ya está ocupada. Por favor, selecciona otra cama disponible.'
+      }
+      
       toast.error(errorMessage)
-      // Aún así intentar recargar los datos
-      fetchData()
+      // No recargar datos si hay error, para que el usuario pueda corregir
     }
   }
 
@@ -164,14 +240,19 @@ const Patients = () => {
           <button
             onClick={() => {
               setEditingPatient(null)
-              setFormData({
-                userId: '',
-                bedId: '',
-                diagnosis: '',
-                treatment: '',
-                medicalRecordNumber: ''
-              })
-              setShowModal(true)
+            setFormData({
+              userId: '',
+              username: '',
+              fullName: '',
+              email: '',
+              password: '',
+              bedId: '',
+              diagnosis: '',
+              treatment: '',
+              medicalRecordNumber: ''
+            })
+            setCreateNewUser(true)
+            setShowModal(true)
             }}
             className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
           >
@@ -240,18 +321,103 @@ const Patients = () => {
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               {!editingPatient && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    ID de Usuario
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.userId}
-                    onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                  />
-                </div>
+                <>
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={createNewUser}
+                        onChange={(e) => setCreateNewUser(e.target.checked)}
+                        className="w-4 h-4 text-primary-600"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Crear nuevo usuario automáticamente
+                      </span>
+                    </label>
+                    <p className="text-xs text-gray-500 mt-2 ml-6">
+                      {createNewUser 
+                        ? 'Se creará un nuevo usuario con los datos que ingreses'
+                        : 'Usar un usuario existente por su ID'}
+                    </p>
+                  </div>
+                  
+                  {createNewUser ? (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Nombre de Usuario *
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.username}
+                          onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                          required
+                          placeholder="Ej: juan.perez"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Nombre Completo *
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.fullName}
+                          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                          required
+                          placeholder="Ej: Juan Pérez"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Email *
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          required
+                          placeholder="Ej: juan@example.com"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Contraseña (opcional)
+                        </label>
+                        <input
+                          type="password"
+                          value={formData.password}
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          placeholder="Dejar vacío para usar 'paciente123'"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Si no ingresas una contraseña, se usará 'paciente123' por defecto
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ID de Usuario Existente *
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.userId}
+                        onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+                        required
+                        min="1"
+                        placeholder="Ingresa el ID del usuario (ej: 1, 2, 3...)"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Usa esta opción si el usuario ya existe en el sistema
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

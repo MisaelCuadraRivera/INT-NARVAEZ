@@ -43,31 +43,46 @@ public class QRCodeService {
     }
     
     public String generateQRCodeString(Bed bed) {
+        if (bed == null) {
+            throw new RuntimeException("La cama no puede ser nula");
+        }
+        
+        // Recargar la cama desde la base de datos para asegurar que todas las relaciones estén cargadas
+        Bed managedBed = bedRepository.findById(bed.getId())
+            .orElseThrow(() -> new RuntimeException("Cama no encontrada en la base de datos"));
+        
         String qrCode = UUID.randomUUID().toString();
-        bed.setQrCode(qrCode);
+        managedBed.setQrCode(qrCode);
         
         try {
-            QRCodeData qrData = buildQRCodeData(bed);
+            QRCodeData qrData = buildQRCodeData(managedBed);
             String jsonData = objectMapper.writeValueAsString(qrData);
-            bed.setQrCodeData(jsonData);
-            bedRepository.save(bed);
+            managedBed.setQrCodeData(jsonData);
+            bedRepository.save(managedBed);
         } catch (Exception e) {
-            throw new RuntimeException("Error al generar datos del QR", e);
+            throw new RuntimeException("Error al generar datos del QR: " + e.getMessage(), e);
         }
         
         return qrCode;
     }
     
     private QRCodeData buildQRCodeData(Bed bed) {
+        if (bed == null) {
+            throw new RuntimeException("La cama no puede ser nula");
+        }
+        
         QRCodeData qrData = new QRCodeData();
         qrData.setBedId(bed.getId());
         qrData.setBedNumber(bed.getBedNumber());
-        qrData.setIslandName(bed.getIsland().getName());
+        
+        if (bed.getIsland() != null) {
+            qrData.setIslandName(bed.getIsland().getName());
+        }
         
         if (bed.getPatient() != null) {
             Patient patient = bed.getPatient();
             QRCodeData.PatientInfo patientInfo = new QRCodeData.PatientInfo(
-                patient.getUser().getFullName(),
+                patient.getUser() != null ? patient.getUser().getFullName() : "N/A",
                 patient.getDiagnosis(),
                 patient.getTreatment(),
                 patient.getMedicalRecordNumber()
@@ -75,13 +90,15 @@ public class QRCodeService {
             qrData.setPatientInfo(patientInfo);
             
             // Obtener enfermero asignado a la isla
-            if (!bed.getIsland().getNurses().isEmpty()) {
+            if (bed.getIsland() != null && bed.getIsland().getNurses() != null && !bed.getIsland().getNurses().isEmpty()) {
                 Nurse nurse = bed.getIsland().getNurses().get(0);
-                QRCodeData.NurseInfo nurseInfo = new QRCodeData.NurseInfo(
-                    nurse.getUser().getFullName(),
-                    nurse.getLicenseNumber()
-                );
-                qrData.setNurseInfo(nurseInfo);
+                if (nurse != null && nurse.getUser() != null) {
+                    QRCodeData.NurseInfo nurseInfo = new QRCodeData.NurseInfo(
+                        nurse.getUser().getFullName(),
+                        nurse.getLicenseNumber()
+                    );
+                    qrData.setNurseInfo(nurseInfo);
+                }
             }
         }
         

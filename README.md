@@ -122,3 +122,4 @@ spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
 - Los códigos QR se generan automáticamente al crear camas
 - La autenticación usa JWT con expiración de 24 horas
 
+

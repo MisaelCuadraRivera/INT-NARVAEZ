@@ -18,3 +18,4 @@ public class BedDTO {
     private boolean occupied;
 }
 
+

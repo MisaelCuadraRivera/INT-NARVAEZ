@@ -30,3 +30,4 @@ npm run build
 - Gestión de islas, camas, pacientes y enfermeros
 - Visualización de códigos QR
 
+

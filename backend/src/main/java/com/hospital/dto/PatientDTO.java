@@ -15,6 +15,7 @@ public class PatientDTO {
     private String username;
     private String fullName;
     private String email;
+    private String password; // Para crear usuario nuevo
     private Long bedId;
     private String bedNumber;
     private String diagnosis;
@@ -23,4 +24,5 @@ public class PatientDTO {
     private LocalDateTime dischargeDate;
     private String medicalRecordNumber;
 }
+
 

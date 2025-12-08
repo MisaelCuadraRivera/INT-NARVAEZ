@@ -4,6 +4,7 @@ import com.hospital.dto.PatientDTO;
 import com.hospital.model.*;
 import com.hospital.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,9 @@ public class PatientService {
     @Autowired
     private QRCodeService qrCodeService;
     
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    
     public List<PatientDTO> getAllPatients() {
         return patientRepository.findAll().stream()
             .map(this::convertToDTO)
@@ -40,43 +44,85 @@ public class PatientService {
     
     @Transactional
     public PatientDTO createPatient(PatientDTO patientDTO) {
-        User user = userRepository.findById(patientDTO.getUserId())
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        
-        // Validación flexible: si el usuario no es paciente, lo convertimos a paciente
-        // (caso típico: el admin crea primero el usuario y luego el paciente desde el dashboard)
-        if (user.getRole() != Role.PATIENT) {
-            user.setRole(Role.PATIENT);
-            userRepository.save(user);
-        }
-        
-        Patient patient = new Patient();
-        patient.setUser(user);
-        patient.setDiagnosis(patientDTO.getDiagnosis());
-        patient.setTreatment(patientDTO.getTreatment());
-        patient.setMedicalRecordNumber(patientDTO.getMedicalRecordNumber());
-        patient.setAdmissionDate(LocalDateTime.now());
-        
-        if (patientDTO.getBedId() != null) {
-            Bed bed = bedRepository.findById(patientDTO.getBedId())
-                .orElseThrow(() -> new RuntimeException("Cama no encontrada"));
+        try {
+            User user;
             
-            if (bed.getPatient() != null) {
-                throw new RuntimeException("La cama ya está ocupada");
+            // Si se proporciona userId, usar ese usuario existente
+            if (patientDTO.getUserId() != null) {
+                user = userRepository.findById(patientDTO.getUserId())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado con ID: " + patientDTO.getUserId()));
+                
+                // Si el usuario no es paciente, lo convertimos a paciente
+                if (user.getRole() != Role.PATIENT) {
+                    user.setRole(Role.PATIENT);
+                    userRepository.save(user);
+                }
+            } 
+            // Si no hay userId pero hay datos de usuario, crear el usuario automáticamente
+            else if (patientDTO.getUsername() != null && !patientDTO.getUsername().trim().isEmpty()) {
+                // Validar que el username no exista
+                if (userRepository.existsByUsername(patientDTO.getUsername())) {
+                    throw new RuntimeException("El nombre de usuario ya existe: " + patientDTO.getUsername());
+                }
+                
+                // Validar email si se proporciona
+                if (patientDTO.getEmail() != null && !patientDTO.getEmail().trim().isEmpty()) {
+                    if (userRepository.existsByEmail(patientDTO.getEmail())) {
+                        throw new RuntimeException("El email ya está registrado: " + patientDTO.getEmail());
+                    }
+                }
+                
+                // Crear nuevo usuario
+                user = new User();
+                user.setUsername(patientDTO.getUsername());
+                user.setFullName(patientDTO.getFullName() != null ? patientDTO.getFullName() : patientDTO.getUsername());
+                user.setEmail(patientDTO.getEmail() != null ? patientDTO.getEmail() : patientDTO.getUsername() + "@hospital.com");
+                user.setPassword(passwordEncoder.encode(patientDTO.getPassword() != null ? patientDTO.getPassword() : "paciente123"));
+                user.setRole(Role.PATIENT);
+                user = userRepository.save(user);
+            } else {
+                throw new RuntimeException("Debe proporcionar un ID de usuario existente o los datos para crear un nuevo usuario (username, fullName, email)");
             }
             
-            patient.setBed(bed);
-            bed.setPatient(patient);
+            Patient patient = new Patient();
+            patient.setUser(user);
+            patient.setDiagnosis(patientDTO.getDiagnosis());
+            patient.setTreatment(patientDTO.getTreatment());
+            patient.setMedicalRecordNumber(patientDTO.getMedicalRecordNumber());
+            patient.setAdmissionDate(LocalDateTime.now());
+            
+            if (patientDTO.getBedId() != null) {
+                Bed bed = bedRepository.findById(patientDTO.getBedId())
+                    .orElseThrow(() -> new RuntimeException("Cama no encontrada"));
+                
+                if (bed.getPatient() != null) {
+                    throw new RuntimeException("La cama ya está ocupada");
+                }
+                
+                patient.setBed(bed);
+                bed.setPatient(patient);
+            }
+            
+            // Guardar primero el paciente
+            Patient savedPatient = patientRepository.save(patient);
+            
+            // Si hay cama asignada, guardar la cama y generar QR code
+            if (savedPatient.getBed() != null) {
+                bedRepository.save(savedPatient.getBed());
+                try {
+                    qrCodeService.generateQRCodeString(savedPatient.getBed());
+                } catch (Exception e) {
+                    // Log el error pero no fallar la creación del paciente
+                    System.err.println("Error al generar QR code: " + e.getMessage());
+                }
+            }
+            
+            return convertToDTO(savedPatient);
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException("Error al crear paciente: " + e.getMessage(), e);
         }
-        
-        Patient savedPatient = patientRepository.save(patient);
-        
-        // Actualizar QR code si hay cama asignada
-        if (savedPatient.getBed() != null) {
-            qrCodeService.generateQRCodeString(savedPatient.getBed());
-        }
-        
-        return convertToDTO(savedPatient);
     }
     
     @Transactional

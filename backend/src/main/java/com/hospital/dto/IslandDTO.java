@@ -18,3 +18,4 @@ public class IslandDTO {
     private Integer occupiedBeds;
 }
 
+

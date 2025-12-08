@@ -28,16 +28,20 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + username));
         
+        logger.info("Loading user: {} with role: {}", username, user.getRole());
+        Collection<? extends GrantedAuthority> authorities = getAuthorities(user);
+        logger.info("User {} has authorities: {}", username, authorities);
+        
         return org.springframework.security.core.userdetails.User.builder()
             .username(user.getUsername())
             .password(user.getPassword())
-            .authorities(getAuthorities(user))
+            .authorities(authorities)
             .build();
     }
     
     private Collection<? extends GrantedAuthority> getAuthorities(User user) {
         String role = "ROLE_" + user.getRole().name();
-        logger.debug("User {} has role: {}", user.getUsername(), role);
+        logger.info("Creating authority for user {}: {}", user.getUsername(), role);
         return Collections.singletonList(new SimpleGrantedAuthority(role));
     }
 }

@@ -42,20 +42,43 @@ const Nurses = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    e.stopPropagation()
+    console.log('=== ENVIANDO FORMULARIO ENFERMERO ===')
+    console.log('Datos del formulario:', formData)
+    console.log('Editando enfermero?', editingNurse)
+    
+    if (!editingNurse && (!formData.userId || formData.userId.trim() === '')) {
+      toast.error('El ID de usuario es requerido')
+      return
+    }
+    
     try {
       if (editingNurse) {
-        await api.put(`/nurses/${editingNurse.id}`, formData)
+        console.log('Actualizando enfermero:', editingNurse.id)
+        const response = await api.put(`/nurses/${editingNurse.id}`, formData)
+        console.log('Respuesta de actualización:', response.data)
         toast.success('Enfermero actualizado exitosamente')
       } else {
-        await api.post('/nurses', formData)
+        console.log('Creando nuevo enfermero')
+        const response = await api.post('/nurses', formData)
+        console.log('Respuesta de creación:', response.data)
         toast.success('Enfermero creado exitosamente')
       }
       setShowModal(false)
       setFormData({ userId: '', licenseNumber: '', specialization: '' })
       setEditingNurse(null)
-      fetchData()
+      await fetchData()
     } catch (error) {
-      toast.error(error.response?.data || 'Error al guardar enfermero')
+      console.error('=== ERROR AL GUARDAR ENFERMERO ===')
+      console.error('Error completo:', error)
+      console.error('Response:', error.response)
+      console.error('Data:', error.response?.data)
+      console.error('Status:', error.response?.status)
+      const errorMessage = error.response?.data?.message || 
+                          (typeof error.response?.data === 'string' ? error.response.data : null) ||
+                          error.message || 
+                          'Error al guardar enfermero'
+      toast.error(`Error: ${errorMessage}`)
     }
   }
 
@@ -112,12 +135,16 @@ const Nurses = () => {
           <p className="text-gray-600 mt-1">Gestiona los enfermeros del hospital</p>
         </div>
         <button
-          onClick={() => {
+          type="button"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            console.log('Abriendo modal de nuevo enfermero')
             setEditingNurse(null)
             setFormData({ userId: '', licenseNumber: '', specialization: '' })
             setShowModal(true)
           }}
-          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors active:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
           + Nuevo Enfermero
         </button>
@@ -176,12 +203,37 @@ const Nurses = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4"
+          style={{ 
+            position: 'fixed',
+            zIndex: 10000,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowModal(false)
+              setEditingNurse(null)
+              setFormData({ userId: '', licenseNumber: '', specialization: '' })
+            }
+          }}
+        >
+          <div 
+            className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl"
+            style={{ zIndex: 10001 }}
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 className="text-2xl font-bold text-gray-800 mb-4">
               {editingNurse ? 'Editar Enfermero' : 'Nuevo Enfermero'}
             </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form 
+              onSubmit={handleSubmit} 
+              className="space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
               {!editingNurse && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -221,13 +273,19 @@ const Nurses = () => {
               <div className="flex gap-3">
                 <button
                   type="submit"
-                  className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors"
+                  onClick={(e) => {
+                    console.log('Botón Guardar enfermero clickeado')
+                    e.stopPropagation()
+                  }}
+                  className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors active:bg-primary-800 focus:outline-none focus:ring-2 focus:ring-primary-500"
                 >
                   Guardar
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
                     setShowModal(false)
                     setEditingNurse(null)
                     setFormData({ userId: '', licenseNumber: '', specialization: '' })
@@ -298,4 +356,5 @@ const Nurses = () => {
 }
 
 export default Nurses
+
 

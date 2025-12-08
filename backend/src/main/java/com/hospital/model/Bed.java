@@ -32,3 +32,4 @@ public class Bed {
     private String qrCodeData;
 }
 
+

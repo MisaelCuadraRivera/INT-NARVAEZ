@@ -18,33 +18,34 @@ public class NurseController {
     private NurseService nurseService;
     
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'NURSE')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_NURSE')")
     public ResponseEntity<List<NurseDTO>> getAllNurses() {
         return ResponseEntity.ok(nurseService.getAllNurses());
     }
     
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NURSE')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_NURSE')")
     public ResponseEntity<NurseDTO> getNurseById(@PathVariable Long id) {
         return ResponseEntity.ok(nurseService.getNurseById(id));
     }
     
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<NurseDTO> createNurse(@RequestBody NurseDTO nurseDTO) {
         return ResponseEntity.ok(nurseService.createNurse(nurseDTO));
     }
     
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'NURSE')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_NURSE')")
     public ResponseEntity<NurseDTO> updateNurse(@PathVariable Long id, @RequestBody NurseDTO nurseDTO) {
         return ResponseEntity.ok(nurseService.updateNurse(id, nurseDTO));
     }
     
     @PostMapping("/{id}/assign-islands")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<NurseDTO> assignIslands(@PathVariable Long id, @RequestBody List<Long> islandIds) {
         return ResponseEntity.ok(nurseService.assignIslandsToNurse(id, islandIds));
     }
 }
+
 

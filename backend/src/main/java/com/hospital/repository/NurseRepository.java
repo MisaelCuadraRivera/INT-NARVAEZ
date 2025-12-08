@@ -12,3 +12,4 @@ public interface NurseRepository extends JpaRepository<Nurse, Long> {
     Optional<Nurse> findByUser(User user);
 }
 
+

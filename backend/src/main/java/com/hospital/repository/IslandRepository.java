@@ -12,3 +12,4 @@ public interface IslandRepository extends JpaRepository<Island, Long> {
     boolean existsByName(String name);
 }
 
+

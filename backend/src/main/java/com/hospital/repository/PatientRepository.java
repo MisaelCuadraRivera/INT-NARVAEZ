@@ -12,3 +12,4 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
     Optional<Patient> findByUser(User user);
 }
 
+

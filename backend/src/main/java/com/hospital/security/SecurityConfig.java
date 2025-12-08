@@ -75,9 +75,15 @@ public class SecurityConfig {
                     response.getWriter().write("{\"error\":\"Unauthorized\"}");
                 })
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SecurityConfig.class);
+                    logger.error("Access Denied for path: " + request.getRequestURI());
+                    logger.error("User: " + (org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null ? 
+                        org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName() : "anonymous"));
+                    logger.error("Authorities: " + (org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication() != null ? 
+                        org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getAuthorities() : "none"));
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType("application/json");
-                    response.getWriter().write("{\"error\":\"Access Denied\"}");
+                    response.getWriter().write("{\"error\":\"Access Denied\", \"path\":\"" + request.getRequestURI() + "\"}");
                 })
             );
         
