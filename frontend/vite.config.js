@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'pwa-512x512.png'],
       manifest: {
         name: 'Hospital Management System',
         short_name: 'Hospital',
@@ -36,6 +36,11 @@ export default defineConfig({
       }
     })
   ],
+  preview: {
+    allowedHosts: [
+      'frontend-production-987f.up.railway.app'
+    ]
+  },
   server: {
     host: true,
     port: 3000,

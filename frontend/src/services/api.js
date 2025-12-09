@@ -11,7 +11,7 @@ const getApiBaseUrl = () => {
   // Automático: reemplaza el puerto del frontend con 8080 (puerto del backend)
   const protocol = window.location.protocol
   const hostname = window.location.hostname
-  return `${protocol}//${hostname}:8080/api`
+  return `https://backend-production-7df8.up.railway.app/api`
 }
 
 export const API_BASE_URL = getApiBaseUrl()
