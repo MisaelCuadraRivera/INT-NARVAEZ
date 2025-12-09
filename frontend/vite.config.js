@@ -40,6 +40,11 @@ export default defineConfig({
       }
     })
   ],
+  preview: {
+    allowedHosts: [
+      'frontend-production-987f.up.railway.app'
+    ]
+  },
   server: {
     host: true,
     port: 3000,
