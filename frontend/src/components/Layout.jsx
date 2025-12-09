@@ -134,8 +134,11 @@ const Layout = () => {
 
         // initial fetch
         await fetchCalls()
-          intervalId = setInterval(fetchCalls, 8000)
+        // CAMBIO: Acelerado a 3000ms (3 segundos)
+        intervalId = setInterval(fetchCalls, 3000)
 
+        // CAMBIO: SSE comentado para evitar error 504 y CORS en AWS
+        /*
           // Try SSE for real-time push
           if (window.EventSource) {
             try {
@@ -177,6 +180,7 @@ const Layout = () => {
               // ignore
             }
           }
+        */
       } catch (err) {
         console.error('Error polling calls', err)
       }
@@ -290,5 +294,3 @@ const Layout = () => {
 }
 
 export default Layout
-
-
