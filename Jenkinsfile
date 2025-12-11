@@ -5,7 +5,7 @@ pipeline {
     // (Asegúrate de haberlas llamado 'Maven-3' y 'NodeJS-18' en "Global Tool Configuration")
     tools {
         maven 'Maven-3'
-        nodejs 'NodeJS-18'
+        nodejs 'NodeJS-21'
     }
 
     environment {
