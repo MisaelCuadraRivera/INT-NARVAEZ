@@ -17,7 +17,7 @@ pipeline {
         
         // EL NOMBRE EXACTO DE TU ENTORNO EN ELASTIC BEANSTALK
         // (Lo puedes ver en la consola de AWS o con 'eb list')
-        EB_ENV_NAME = 'nombre-de-tu-entorno-beanstalk'
+        EB_ENV_NAME = 'Hospital-app-env'
     }
 
     stages {
