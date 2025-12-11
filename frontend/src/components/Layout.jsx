@@ -1,12 +1,15 @@
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react' // <--- IMPORTANTE: useState agregado
 import api, { API_BASE_URL } from '../services/api'
 import { toast } from 'react-toastify'
 
 const Layout = () => {
   const { user, logout, isAdmin, isNurse } = useAuth()
   const location = useLocation()
+  
+  // Estado para controlar si ya activamos el audio manualmente
+  const [permissionsGranted, setPermissionsGranted] = useState(false)
 
   const isActive = (path) => location.pathname === path
 
@@ -22,22 +25,43 @@ const Layout = () => {
     item.roles.includes(user?.role)
   )
 
-  // Poll for incoming calls for nurses and show browser notifications
+  // --- FUNCIÓN PARA ACTIVAR PERMISOS EN CELULAR ---
+  const enableAlerts = () => {
+    // 1. Pedir permiso de notificaciones nativas
+    if (Notification) {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          console.log('Notificaciones permitidas')
+        }
+      })
+    }
+    
+    // 2. Desbloquear AudioContext (Truco para iOS/Android)
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      const o = ctx.createOscillator()
+      const g = ctx.createGain()
+      g.gain.setValueAtTime(0, ctx.currentTime) // Volumen 0 (silencio)
+      o.connect(g)
+      g.connect(ctx.destination)
+      o.start()
+      o.stop(ctx.currentTime + 0.1) // Dura 0.1 segundos
+      
+      setPermissionsGranted(true) // Ocultamos el botón
+      toast.success('¡Sonido y Alertas Activados!')
+    } catch (e) {
+      console.error('Error al activar audio', e)
+      toast.error('No se pudo activar el audio')
+    }
+  }
+
+  // Poll for incoming calls for nurses
   const seenCallsRef = useRef(new Set())
   useEffect(() => {
     let intervalId = null
     const startPolling = async () => {
       if (!user || !user.id) return
       try {
-        // Request notification permission (if not yet granted/denied)
-        if (Notification && Notification.permission === 'default') {
-          Notification.requestPermission().then(p => {
-            if (p !== 'granted') {
-              console.warn('Notificaciones no permitidas por el usuario')
-            }
-          })
-        }
-
         const fetchCalls = async () => {
           try {
             const res = await api.get(`/calls/nurse/${user.id}`)
@@ -45,142 +69,62 @@ const Layout = () => {
             calls.forEach(call => {
               if (!seenCallsRef.current.has(call.id)) {
                 seenCallsRef.current.add(call.id)
-                // Build notification text
+                
+                // Texto de la notificación
                 const bedNum = call.bed?.bedNumber || call.bed?.id || 'N/A'
-                const patientName = call.patient?.fullName || call.patient?.username || 'Paciente'
+                const patientName = call.patient?.user?.fullName || 'Paciente'
                 const title = 'Llamado de emergencia'
                 const body = `${patientName} en cama ${bedNum} está llamando.`
 
-                // Show browser notification if permitted
+                // 1. Notificación Nativa (si hay permiso)
                 if (Notification && Notification.permission === 'granted') {
                   try {
                     const n = new Notification(title, { body })
                     n.onclick = () => window.focus()
-                  } catch (err) {
-                    console.error('No se pudo mostrar notificación:', err)
-                  }
+                  } catch (err) { console.error(err) }
                 }
 
-                // Also show in-app toast
-                toast.warn(body, { autoClose: 10000 })
+                // 2. Toast visible (siempre sale)
+                toast.warn(body, { 
+                  position: "top-center",
+                  autoClose: 10000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  style: { fontSize: '16px', fontWeight: 'bold' }
+                })
 
-                // Play a short beep via Web Audio
+                // 3. Sonido "Beep" fuerte
                 try {
                   const ctx = new (window.AudioContext || window.webkitAudioContext)()
                   const o = ctx.createOscillator()
                   const g = ctx.createGain()
-                  o.type = 'sine'
-                  o.frequency.setValueAtTime(880, ctx.currentTime)
+                  o.type = 'sine' // Tipo de onda (sine, square, sawtooth)
+                  o.frequency.setValueAtTime(880, ctx.currentTime) // Tono agudo (A5)
                   g.gain.setValueAtTime(0.0001, ctx.currentTime)
-                  g.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + 0.01)
+                  g.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime + 0.01) // Volumen
                   o.connect(g)
                   g.connect(ctx.destination)
                   o.start()
                   setTimeout(() => {
                     o.stop()
                     ctx.close()
-                  }, 600)
+                  }, 1000) // Duración 1 segundo
                 } catch (e) {
                   console.warn('Audio not available', e)
                 }
               }
             })
           } catch (err) {
-            // silent
+            // silent fail
           }
-        }
-
-        const registerPushSubscription = async () => {
-          try {
-            if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
-            const permission = await Notification.requestPermission()
-            if (permission !== 'granted') return
-
-            // register service worker
-            const registration = await navigator.serviceWorker.register('/sw.js')
-
-            // get existing subscription
-            let subscription = await registration.pushManager.getSubscription()
-            if (!subscription) {
-              // fetch VAPID public key
-              const vapidRes = await api.get('/push/vapidPublicKey')
-              const publicKey = vapidRes.data.publicKey
-              const applicationServerKey = urlBase64ToUint8Array(publicKey)
-              subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey
-              })
-            }
-
-            // send subscription to backend for this nurse
-            if (subscription) {
-              await api.post(`/push/subscribe/${user.id}`, { subscription: subscription.toJSON() })
-            }
-          } catch (err) {
-            console.warn('Push subscription failed', err)
-          }
-        }
-
-        function urlBase64ToUint8Array(base64String) {
-          const padding = '='.repeat((4 - base64String.length % 4) % 4)
-          const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-          const rawData = window.atob(base64)
-          const outputArray = new Uint8Array(rawData.length)
-          for (let i = 0; i < rawData.length; ++i) {
-            outputArray[i] = rawData.charCodeAt(i)
-          }
-          return outputArray
         }
 
         // initial fetch
         await fetchCalls()
-        // CAMBIO: Acelerado a 3000ms (3 segundos)
-        intervalId = setInterval(fetchCalls, 3000)
+        intervalId = setInterval(fetchCalls, 3000) // Cada 3 segundos
 
-        // CAMBIO: SSE comentado para evitar error 504 y CORS en AWS
-        /*
-          // Try SSE for real-time push
-          if (window.EventSource) {
-            try {
-              // Use API_BASE_URL so SSE connects to the actual backend URL (works with ngrok)
-              const sseBase = API_BASE_URL.replace(/\/$/, '')
-              const sseUrl = `${sseBase}/calls/stream/${user.id}`
-              const es = new EventSource(sseUrl)
-              es.onopen = () => console.log('SSE connected to', sseUrl)
-              es.onmessage = (ev) => {
-                try {
-                  const call = JSON.parse(ev.data)
-                  if (!seenCallsRef.current.has(call.id)) {
-                    seenCallsRef.current.add(call.id)
-                    const bedNum = call.bed?.bedNumber || call.bed?.id || 'N/A'
-                    const patientName = call.patient?.fullName || call.patient?.username || 'Paciente'
-                    const title = 'Llamado de emergencia'
-                    const body = `${patientName} en cama ${bedNum} está llamando.`
-                    if (Notification && Notification.permission === 'granted') {
-                      new Notification(title, { body })
-                    }
-                    toast.warn(body, { autoClose: 10000 })
-                  }
-                } catch (err) {
-                  console.error('Error processing SSE message', err)
-                }
-              }
-              es.onerror = (err) => {
-                try { es.close() } catch (e) {}
-              }
-              // store EventSource on window so we can close it on unmount
-              window.__callsEventSource = es
-            } catch (e) {
-              console.warn('SSE not available', e)
-            }
-            // register push subscription for nurses
-            try {
-              await registerPushSubscription()
-            } catch (e) {
-              // ignore
-            }
-          }
-        */
       } catch (err) {
         console.error('Error polling calls', err)
       }
@@ -192,15 +136,25 @@ const Layout = () => {
 
     return () => {
       if (intervalId) clearInterval(intervalId)
-        try {
-          const es = window.__callsEventSource
-          if (es) es.close()
-        } catch (e) {}
     }
   }, [user])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20 lg:pb-0">
+      
+      {/* --- BOTÓN FLOTANTE PARA ACTIVAR ALERTAS EN MÓVIL --- */}
+      {user?.role === 'NURSE' && !permissionsGranted && (
+        <div className="bg-yellow-100 border-b border-yellow-300 p-3 sticky top-0 z-[60] text-center shadow-md">
+          <p className="text-yellow-800 text-xs mb-2 font-medium">⚠️ Necesario para escuchar alarmas</p>
+          <button 
+            onClick={enableAlerts}
+            className="bg-blue-600 text-white px-6 py-3 rounded-full font-bold text-sm shadow active:bg-blue-700 transition-colors w-full max-w-xs"
+          >
+            🔔 ACTIVAR SONIDO
+          </button>
+        </div>
+      )}
+
       {/* Header móvil */}
       <header className="bg-white shadow-sm sticky top-0 z-50 lg:hidden">
         <div className="px-4 py-3 flex items-center justify-between">
@@ -284,10 +238,8 @@ const Layout = () => {
       </div>
 
       {/* Contenido móvil */}
-      <main className="lg:hidden pb-20">
-        <div className="p-4">
-          <Outlet />
-        </div>
+      <main className="lg:hidden p-4">
+        <Outlet />
       </main>
     </div>
   )
