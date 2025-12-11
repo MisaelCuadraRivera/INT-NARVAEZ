@@ -31,7 +31,7 @@ pipeline {
                 // Verificamos versiones por seguridad
                 sh 'java -version'
                 sh 'mvn -version'
-                sh 'node -version'
+                sh 'node --version'
             }
         }
 
