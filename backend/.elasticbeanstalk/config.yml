@@ -1,0 +1,9 @@
+branch-defaults:
+  default:
+    environment: Hospital-app-env 
+global:
+  application_name: hospital-app
+  default_region: us-east-1
+  profile: null
+  sc: git
+  workspace_type: Application
