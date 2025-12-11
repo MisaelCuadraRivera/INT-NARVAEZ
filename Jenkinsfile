@@ -67,14 +67,40 @@ pipeline {
             steps {
                 dir('backend') {
                     script {
-                        echo "Desplegando versión a Elastic Beanstalk..."
-                        
-                        // Usamos las credenciales guardadas en Jenkins para inyectarlas en la consola
-                        withCredentials([usernamePassword(credentialsId: env.AWS_CREDS_ID, passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
-                            
-                            // Comando mágico de despliegue
-                            sh "eb deploy ${EB_ENV_NAME}"
-                        }
+                                                echo "Desplegando versión a Elastic Beanstalk..."
+
+                                                // Instalar EB CLI (awsebcli) en el agente si no está disponible
+                                                sh '''
+                                                    echo "Comprobando EB CLI..."
+                                                    if ! command -v eb >/dev/null 2>&1; then
+                                                        echo "EB CLI no encontrada. Intentando instalar awsebcli..."
+                                                        if command -v pip3 >/dev/null 2>&1; then
+                                                            pip3 install --user awsebcli || true
+                                                        else
+                                                            if command -v apt-get >/dev/null 2>&1; then
+                                                                sudo apt-get update -y || true
+                                                                sudo apt-get install -y python3-pip || true
+                                                                pip3 install --user awsebcli || true
+                                                            else
+                                                                echo "No se encontró pip3 ni apt-get. Intentando pip (sin sudo)..."
+                                                                pip install --user awsebcli || true
+                                                            fi
+                                                        fi
+                                                    else
+                                                        echo "EB CLI encontrada."
+                                                    fi
+                                                    export PATH="$HOME/.local/bin:$PATH"
+                                                    eb --version || true
+                                                '''
+
+                                                // Usamos las credenciales guardadas en Jenkins para inyectarlas en la consola
+                                                withCredentials([usernamePassword(credentialsId: env.AWS_CREDS_ID, passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
+                                                        // Ejecutar deploy asegurando que ~/.local/bin esté en PATH
+                                                        sh '''
+                                                            export PATH="$HOME/.local/bin:$PATH"
+                                                            eb deploy ${EB_ENV_NAME}
+                                                        '''
+                                                }
                     }
                 }
             }
