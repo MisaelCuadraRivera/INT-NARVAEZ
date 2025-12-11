@@ -1,6 +1,7 @@
 package com.hospital.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore; // <--- IMPORTANTE
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,16 +12,20 @@ public class Island {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(nullable = false, unique = true)
     private String name;
-    
+
     @Column(length = 500)
     private String description;
-    
+
+    // --- CORTAR BUCLE: Al pedir una Isla, no traigas todas sus camas ---
+    @JsonIgnore
     @OneToMany(mappedBy = "island", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Bed> beds = new ArrayList<>();
-    
+
+    // --- CORTAR BUCLE: Al pedir una Isla, no traigas todos sus enfermeros ---
+    @JsonIgnore
     @ManyToMany(mappedBy = "assignedIslands")
     private List<Nurse> nurses = new ArrayList<>();
 
@@ -65,5 +70,3 @@ public class Island {
         this.nurses = nurses;
     }
 }
-
-

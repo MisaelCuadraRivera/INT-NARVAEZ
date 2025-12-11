@@ -1,6 +1,7 @@
 package com.hospital.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore; // <--- IMPORTANTE: Agrega esta línea
 
 import java.util.HashSet;
 import java.util.Set;
@@ -11,31 +12,37 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(unique = true, nullable = false)
     private String username;
-    
+
     @Column(nullable = false)
     private String password;
-    
+
     @Column(nullable = false)
     private String email;
-    
+
     @Column(nullable = false)
     private String fullName;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
-    
+
+    // --- AQUÍ ESTÁ EL CAMBIO ---
+    // Agregamos @JsonIgnore para que cuando pidamos un usuario,
+    // no intente traer al paciente y crear un bucle infinito.
+    @JsonIgnore
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Patient patient;
-    
+
+    // Agregamos @JsonIgnore para cortar el bucle con Nurse.
+    // Call -> Nurse -> User -> (STOP)
+    @JsonIgnore
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Nurse nurse;
 
-    // Explicit getters and setters added to avoid IDE/compile issues when Lombok
-    // annotation processing is not enabled in the environment.
+    // Explicit getters and setters...
     public Long getId() {
         return id;
     }
@@ -100,5 +107,3 @@ public class User {
         this.nurse = nurse;
     }
 }
-
-

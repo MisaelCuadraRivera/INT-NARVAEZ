@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -42,10 +43,20 @@ public class CallService {
     private static final int EXPIRE_MINUTES = 10;
     private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
 
+    // Método auxiliar para encontrar al enfermero de forma robusta
+    // (Busca por User ID primero, y si falla, por Nurse ID)
+    private Optional<Nurse> resolveNurse(Long userIdOrNurseId) {
+        Optional<Nurse> nurseOpt = nurseRepository.findByUserId(userIdOrNurseId);
+        if (nurseOpt.isEmpty()) {
+            nurseOpt = nurseRepository.findById(userIdOrNurseId);
+        }
+        return nurseOpt;
+    }
+
     @Transactional
     public Call createCall(Long bedId) {
         Bed bed = bedRepository.findById(bedId)
-            .orElseThrow(() -> new RuntimeException("Cama no encontrada"));
+                .orElseThrow(() -> new RuntimeException("Cama no encontrada"));
 
         // cooldown: check recent active calls for this bed
         List<Call> recent = callRepository.findByBedIdAndStatusOrderByCreatedAtDesc(bedId, "ACTIVE");
@@ -103,6 +114,7 @@ public class CallService {
 
         // notify via SSE if nurse is connected
         if (assigned != null) {
+            // Importante: Usamos el ID real del enfermero para buscar el emisor
             SseEmitter emitter = emitters.get(assigned.getId());
             if (emitter != null) {
                 try {
@@ -127,15 +139,32 @@ public class CallService {
         return saved;
     }
 
-    public List<Call> getActiveCallsForNurse(Long nurseId) {
-        return callRepository.findByNurseIdAndStatusOrderByCreatedAtDesc(nurseId, "ACTIVE");
+    // MODIFICADO: Ahora es inteligente para buscar por UserID o NurseID
+    public List<Call> getActiveCallsForNurse(Long userIdOrNurseId) {
+        Optional<Nurse> nurseOpt = resolveNurse(userIdOrNurseId);
+
+        if (nurseOpt.isPresent()) {
+            return callRepository.findByNurseIdAndStatusOrderByCreatedAtDesc(nurseOpt.get().getId(), "ACTIVE");
+        }
+
+        return new ArrayList<>();
     }
 
-    public SseEmitter subscribe(Long nurseId) {
-        SseEmitter emitter = new SseEmitter(0L);
-        emitters.put(nurseId, emitter);
-        emitter.onCompletion(() -> emitters.remove(nurseId));
-        emitter.onTimeout(() -> emitters.remove(nurseId));
+    // MODIFICADO: Registra el SSE bajo el ID real del enfermero
+    public SseEmitter subscribe(Long userIdOrNurseId) {
+        // Resolvemos quién es el enfermero real detrás de este ID
+        Optional<Nurse> nurseOpt = resolveNurse(userIdOrNurseId);
+        Long realNurseId = nurseOpt.map(Nurse::getId).orElse(userIdOrNurseId);
+
+        SseEmitter emitter = new SseEmitter(0L); // 0L significa timeout infinito
+
+        // Guardamos el emisor usando el ID REAL del enfermero
+        emitters.put(realNurseId, emitter);
+
+        emitter.onCompletion(() -> emitters.remove(realNurseId));
+        emitter.onTimeout(() -> emitters.remove(realNurseId));
+        emitter.onError((e) -> emitters.remove(realNurseId));
+
         return emitter;
     }
 

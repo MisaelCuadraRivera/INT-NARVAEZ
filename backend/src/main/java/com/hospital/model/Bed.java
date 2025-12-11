@@ -1,6 +1,7 @@
 package com.hospital.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore; // <--- IMPORTANTE
 
 @Entity
 @Table(name = "beds")
@@ -8,20 +9,25 @@ public class Bed {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(nullable = false)
     private String bedNumber;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
+
+    // Mantenemos Island visible (sin JsonIgnore) porque es útil saber de qué isla es la cama.
+    // Como Island.java ya tiene @JsonIgnore en 'beds', el bucle se rompe allá.
+    @ManyToOne(fetch = FetchType.EAGER) // Cambiado a EAGER para evitar errores de sesión cerrada
     @JoinColumn(name = "island_id", nullable = false)
     private Island island;
-    
+
+    // --- CORTAR BUCLE: La cama no necesita pintar al paciente en el JSON ---
+    // (El objeto 'Call' ya tiene al paciente directo)
+    @JsonIgnore
     @OneToOne(mappedBy = "bed", cascade = CascadeType.ALL)
     private Patient patient;
-    
+
     @Column(unique = true)
     private String qrCode;
-    
+
     @Column(columnDefinition = "TEXT")
     private String qrCodeData;
 
@@ -74,5 +80,3 @@ public class Bed {
         this.qrCodeData = qrCodeData;
     }
 }
-
-

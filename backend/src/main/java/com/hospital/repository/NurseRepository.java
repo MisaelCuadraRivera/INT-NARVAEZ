@@ -9,8 +9,11 @@ import java.util.Optional;
 
 @Repository
 public interface NurseRepository extends JpaRepository<Nurse, Long> {
+
     Optional<Nurse> findByUser(User user);
+
+    // --- AQUÍ ESTÁ EL ARREGLO ---
+    // Este método permite buscar al enfermero usando el ID del LOGIN (Usuario 5)
+    // en lugar del ID de la tabla de enfermeros (Enfermero 2).
     Optional<Nurse> findByUserId(Long userId);
 }
-
-
