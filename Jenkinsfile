@@ -69,35 +69,37 @@ pipeline {
                     script {
                                                 echo "Desplegando versión a Elastic Beanstalk..."
 
-                                                // Instalar EB CLI (awsebcli) en el agente si no está disponible
+                                                // Instalar EB CLI (awsebcli) en un virtualenv dentro del workspace si no está disponible
+                                                // Esto evita depender de sudo o de rutas globales y funciona con el usuario 'jenkins'.
                                                 sh '''
                                                     echo "Comprobando EB CLI..."
-                                                    if ! command -v eb >/dev/null 2>&1; then
-                                                        echo "EB CLI no encontrada. Intentando instalar awsebcli..."
-                                                        if command -v pip3 >/dev/null 2>&1; then
-                                                            pip3 install --user awsebcli || true
-                                                        else
-                                                            if command -v apt-get >/dev/null 2>&1; then
-                                                                sudo apt-get update -y || true
-                                                                sudo apt-get install -y python3-pip || true
-                                                                pip3 install --user awsebcli || true
-                                                            else
-                                                                echo "No se encontró pip3 ni apt-get. Intentando pip (sin sudo)..."
-                                                                pip install --user awsebcli || true
-                                                            fi
-                                                        fi
+                                                    if command -v eb >/dev/null 2>&1; then
+                                                        echo "EB CLI ya está disponible:" $(which eb)
+                                                        eb --version || true
                                                     else
-                                                        echo "EB CLI encontrada."
+                                                        echo "EB CLI no encontrada. Creando virtualenv e instalando awsebcli en el workspace..."
+                                                        # Asegurarse de tener python3 y venv
+                                                        if ! command -v python3 >/dev/null 2>&1; then
+                                                            echo "python3 no encontrado. Abortando instalación local de awsebcli." >&2
+                                                        else
+                                                            python3 -m venv .venv_awseb || true
+                                                            . .venv_awseb/bin/activate
+                                                            pip install --upgrade pip setuptools wheel || true
+                                                            pip install --no-cache-dir awsebcli || true
+                                                            echo "Contenido de .venv_awseb/bin:" && ls -la .venv_awseb/bin || true
+                                                            eb --version || true
+                                                        fi
                                                     fi
-                                                    export PATH="$HOME/.local/bin:$PATH"
-                                                    eb --version || true
                                                 '''
 
                                                 // Usamos las credenciales guardadas en Jenkins para inyectarlas en la consola
                                                 withCredentials([usernamePassword(credentialsId: env.AWS_CREDS_ID, passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
-                                                        // Ejecutar deploy asegurando que ~/.local/bin esté en PATH
+                                                        // Ejecutar deploy usando el virtualenv si existe, o el eb del PATH
                                                         sh '''
-                                                            export PATH="$HOME/.local/bin:$PATH"
+                                                            if [ -f .venv_awseb/bin/activate ]; then
+                                                                . .venv_awseb/bin/activate
+                                                            fi
+                                                            echo "Usando eb en:" $(command -v eb || echo 'no encontrado')
                                                             eb deploy ${EB_ENV_NAME}
                                                         '''
                                                 }
