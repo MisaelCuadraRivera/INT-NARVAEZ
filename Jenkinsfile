@@ -42,11 +42,14 @@ pipeline {
             steps {
                 dir('frontend') { 
                     echo 'Instalando dependencias de React...'
-                    sh 'npm install'
-                    
-                    echo 'Verificando construcción (Build)...'
-                    // Esto asegura que el código no tenga errores de sintaxis graves
-                    sh 'npm run build' 
+                    // Instalamos dependencias y forzamos la URL de la API del frontend a usar el puerto 8080
+                    sh '''
+                      echo "Instalando dependencias de React..."
+                      npm install
+                      echo "Construyendo frontend con VITE_API_URL=http://localhost:8080"
+                      # Forzar variable para que la build apunte al backend en :8080
+                      VITE_API_URL="http://localhost:8080" npm run build
+                    '''
                 }
             }
         }
@@ -56,8 +59,23 @@ pipeline {
             steps {
                 dir('backend') {
                     echo 'Compilando Spring Boot...'
-                    // -DskipTests para ir más rápido, quítalo si quieres ejecutar tests unitarios
-                    sh 'mvn clean package -DskipTests'
+                                        // Forzar que el archivo de propiedades use el puerto 5000 para esta build
+                                        sh '''
+                                            FILE=src/main/resources/application.properties
+                                            echo "Ajustando server.port=5000 en $FILE (si existe lo reemplaza, si no lo añade)"
+                                            if [ -f "$FILE" ]; then
+                                                if grep -q '^server.port=' "$FILE"; then
+                                                    sed -i.bak 's/^server.port=.*/server.port=5000/' "$FILE" || true
+                                                else
+                                                    echo "server.port=5000" >> "$FILE"
+                                                fi
+                                                echo "Contenido actual de $FILE:" && cat "$FILE"
+                                            else
+                                                echo "$FILE no encontrado, creando con server.port=5000" && mkdir -p $(dirname "$FILE") && echo "server.port=5000" > "$FILE"
+                                            fi
+                                        '''
+                                        // -DskipTests para ir más rápido, quítalo si quieres ejecutar tests unitarios
+                                        sh 'mvn clean package -DskipTests'
                 }
             }
         }
