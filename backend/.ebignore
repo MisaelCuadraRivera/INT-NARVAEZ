@@ -1,0 +1,7 @@
+# Ignorar todo por defecto para que el zip sea ligero
+*
+
+# ! significa "NO IGNORAR" (Osea, incluir)
+!Dockerfile
+!target/
+!.elasticbeanstalk/

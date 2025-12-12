@@ -113,13 +113,34 @@ pipeline {
                                                 // Usamos las credenciales guardadas en Jenkins para inyectarlas en la consola
                                                 withCredentials([usernamePassword(credentialsId: env.AWS_CREDS_ID, passwordVariable: 'AWS_SECRET_ACCESS_KEY', usernameVariable: 'AWS_ACCESS_KEY_ID')]) {
                                                         // Ejecutar deploy usando el virtualenv si existe, o el eb del PATH
-                                                        sh '''
-                                                            if [ -f .venv_awseb/bin/activate ]; then
-                                                                . .venv_awseb/bin/activate
-                                                            fi
-                                                            echo "Usando eb en:" $(command -v eb || echo 'no encontrado')
-                                                            eb deploy ${EB_ENV_NAME}
-                                                        '''
+                                                        // Si falla, recoger logs y archivarlos para depuración.
+                                                        script {
+                                                                try {
+                                                                        sh '''
+                                                                            if [ -f .venv_awseb/bin/activate ]; then
+                                                                                . .venv_awseb/bin/activate
+                                                                            fi
+                                                                            echo "Usando eb en:" $(command -v eb || echo 'no encontrado')
+                                                                            eb deploy ${EB_ENV_NAME}
+                                                                        '''
+                                                                } catch (err) {
+                                                                        // intentar recopilar logs desde Elastic Beanstalk
+                                                                        sh '''
+                                                                            if [ -f .venv_awseb/bin/activate ]; then
+                                                                                . .venv_awseb/bin/activate
+                                                                            fi
+                                                                            echo "eb deploy falló. Recolectando logs de Elastic Beanstalk..."
+                                                                            set +e
+                                                                            eb logs --all || true
+                                                                            eb events --verbose || true
+                                                                            ls -la || true
+                                                                            set -e
+                                                                        '''
+                                                                        // archivar cualquier ZIP de logs generado en el directorio backend
+                                                                        archiveArtifacts artifacts: 'backend/*.zip', allowEmptyArchive: true
+                                                                        error("eb deploy failed; logs collected and archived")
+                                                                }
+                                                        }
                                                 }
                     }
                 }
