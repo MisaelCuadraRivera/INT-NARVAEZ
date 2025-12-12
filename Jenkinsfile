@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    // El trigger se configura en la UI de Jenkins:
+    // Configure → Build Triggers → ✅ GitHub hook trigger for GITScm polling
+    // O puedes usar: triggers { pollSCM('H/5 * * * *') } para polling cada 5 minutos
+
     // Definimos las herramientas que configuramos en Jenkins
     // (Asegúrate de haberlas llamado 'Maven-3' y 'NodeJS-18' en "Global Tool Configuration")
     tools {
