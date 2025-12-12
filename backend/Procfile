@@ -1,0 +1,1 @@
+web: java -Dspring.profiles.active=eb -jar target/hospital-management-1.0.0.jar

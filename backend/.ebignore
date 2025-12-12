@@ -5,4 +5,6 @@
 !Dockerfile
 !target/
 !.elasticbeanstalk/
+!.ebextensions/
+!Procfile
 

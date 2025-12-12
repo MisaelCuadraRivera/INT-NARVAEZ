@@ -59,23 +59,16 @@ pipeline {
             steps {
                 dir('backend') {
                     echo 'Compilando Spring Boot...'
-                                        // Forzar que el archivo de propiedades use el puerto 5000 para esta build
-                                        sh '''
-                                            FILE=src/main/resources/application.properties
-                                            echo "Ajustando server.port=5000 en $FILE (si existe lo reemplaza, si no lo añade)"
-                                            if [ -f "$FILE" ]; then
-                                                if grep -q '^server.port=' "$FILE"; then
-                                                    sed -i.bak 's/^server.port=.*/server.port=5000/' "$FILE" || true
-                                                else
-                                                    echo "server.port=5000" >> "$FILE"
-                                                fi
-                                                echo "Contenido actual de $FILE:" && cat "$FILE"
-                                            else
-                                                echo "$FILE no encontrado, creando con server.port=5000" && mkdir -p $(dirname "$FILE") && echo "server.port=5000" > "$FILE"
-                                            fi
-                                        '''
-                                        // -DskipTests para ir más rápido, quítalo si quieres ejecutar tests unitarios
-                                        sh 'mvn clean package -DskipTests'
+                    // Asegurar que el Procfile existe
+                    sh '''
+                        if [ ! -f Procfile ]; then
+                            echo "web: java -Dspring.profiles.active=eb -jar target/hospital-management-1.0.0.jar" > Procfile
+                            echo "Procfile creado"
+                        fi
+                        cat Procfile
+                    '''
+                    // -DskipTests para ir más rápido, quítalo si quieres ejecutar tests unitarios
+                    sh 'mvn clean package -DskipTests'
                 }
             }
         }
