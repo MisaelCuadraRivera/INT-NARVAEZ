@@ -16,3 +16,4 @@ public interface BedRepository extends JpaRepository<Bed, Long> {
 }
 
 
+

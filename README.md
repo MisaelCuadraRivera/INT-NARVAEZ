@@ -123,3 +123,4 @@ spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
 - La autenticación usa JWT con expiración de 24 horas
 
 
+

@@ -63,3 +63,4 @@ java -jar -Dspring.profiles.active=mysql target/hospital-management-1.0.0.jar
 La configuración de conexión usada por este proyecto está en `src/main/resources/application-mysql.properties`.
 
 
+

@@ -31,3 +31,4 @@ npm run build
 - Visualización de códigos QR
 
 
+
